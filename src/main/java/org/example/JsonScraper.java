@@ -1,10 +1,8 @@
 package org.example;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +25,7 @@ public class JsonScraper {
         }
     }
 
-    public void getFlightCombinations(String url, String csvFilePath, String origin, String destination, String outboundDate, String inboundDate) {
+    public void getFlightCombinations(String url, String csvFilePath, String origin, String destination, String outboundDate, String inboundDate, String connectionAirport) {
         List<String> flightCombinations = new ArrayList<>();
 
         try {
@@ -72,20 +70,23 @@ public class JsonScraper {
 
                 // Skip flights with 2 connections
                 if (outboundFlight.text().contains("1 connection") && inboundFlight.text().contains("1 connection")) {
-                    double currentPrice = Double.parseDouble(price);
+                    // Check if the flight has the specified connection airport or is a direct flight
+                    if (outboundFlight.text().contains(connectionAirport) || outboundFlight.text().contains("Direct")) {
+                        double currentPrice = Double.parseDouble(price);
 
-                    if (currentPrice < cheapestPrice) {
-                        cheapestPrice = currentPrice;
+                        if (currentPrice < cheapestPrice) {
+                            cheapestPrice = currentPrice;
+                        }
+
+                        csvWriter.append(outboundFlight.text());
+                        csvWriter.append(",");
+                        csvWriter.append(inboundFlight.text());
+                        csvWriter.append(",");
+                        csvWriter.append(price);
+                        csvWriter.append(",");
+                        csvWriter.append(tax);
+                        csvWriter.append("\n");
                     }
-
-                    csvWriter.append(outboundFlight.text());
-                    csvWriter.append(",");
-                    csvWriter.append(inboundFlight.text());
-                    csvWriter.append(",");
-                    csvWriter.append(price);
-                    csvWriter.append(",");
-                    csvWriter.append(tax);
-                    csvWriter.append("\n");
                 }
             }
 
@@ -99,7 +100,7 @@ public class JsonScraper {
             csvWriter.flush();
             csvWriter.close();
 
-            System.out.println("Flight combinations data saved to CSV file: " + csvFilePath);
+            System.out.println("Flight combinations saved to CSV file: " + csvFilePath);
         } catch (IOException e) {
             e.printStackTrace();
         }

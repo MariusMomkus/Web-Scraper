@@ -27,7 +27,7 @@ public class JsonScraper {
         }
     }
 
-    public void getFlightCombinations(String url, String csvFilePath) {
+    public void getFlightCombinations(String url, String csvFilePath, String origin, String destination, String outboundDate, String inboundDate) {
         List<String> flightCombinations = new ArrayList<>();
 
         try {
@@ -70,20 +70,23 @@ public class JsonScraper {
                 String price = priceElements.get(i).text();
                 String tax = taxElements.get(i).text();
 
-                double currentPrice = Double.parseDouble(price);
+                // Skip flights with 2 connections
+                if (outboundFlight.text().contains("1 connection") && inboundFlight.text().contains("1 connection")) {
+                    double currentPrice = Double.parseDouble(price);
 
-                if (currentPrice < cheapestPrice) {
-                    cheapestPrice = currentPrice;
+                    if (currentPrice < cheapestPrice) {
+                        cheapestPrice = currentPrice;
+                    }
+
+                    csvWriter.append(outboundFlight.text());
+                    csvWriter.append(",");
+                    csvWriter.append(inboundFlight.text());
+                    csvWriter.append(",");
+                    csvWriter.append(price);
+                    csvWriter.append(",");
+                    csvWriter.append(tax);
+                    csvWriter.append("\n");
                 }
-
-                csvWriter.append(outboundFlight.text());
-                csvWriter.append(",");
-                csvWriter.append(inboundFlight.text());
-                csvWriter.append(",");
-                csvWriter.append(price);
-                csvWriter.append(",");
-                csvWriter.append(tax);
-                csvWriter.append("\n");
             }
 
             // Write the cheapest price to the CSV file
@@ -102,3 +105,5 @@ public class JsonScraper {
         }
     }
 }
+
+

@@ -1,43 +1,52 @@
 package org.example;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JsonScraper {
-    public String scrapeJsonData(String url) {
+    public String fetchJsonData(String url) {
         try {
             // Fetch the webpage and parse it into a Document object
             Document doc = Jsoup.connect(url).get();
 
             // Extract the JSON data from the script tag
             Element scriptElement = doc.selectFirst("script[type=application/ld+json]");
-            String jsonData = scriptElement.html();
-
-            return jsonData;
-        } catch (Exception e) {
+            if (scriptElement != null) {
+                String jsonData = scriptElement.html();
+                return jsonData;
+            }
+        } catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
+        return null;
     }
 
-    public void getFlightCombinations(String url, String csvFilePath, String origin, String destination, String outboundDate, String inboundDate, String connectionAirport) {
-        List<String> flightCombinations = new ArrayList<>();
-
+    public void getFlightCombinations(String jsonData, String csvFilePath, String origin, String destination, String outboundDate, String inboundDate, String connectionAirport) {
         try {
-            // Fetch the webpage and parse it into a Document object
-            Document doc = Jsoup.connect(url).get();
+            // Parse the provided JSON data into a Document object
+            Document doc = Jsoup.parse(jsonData);
 
             // Extract outbound flight data
-            Element outboundContainer = doc.selectFirst(".outbound-container");
+            Element outboundContainer = doc.selectFirst(".flights-container .flight-out");
+            if (outboundContainer == null) {
+                System.out.println("No outbound flights found.");
+                return;
+            }
             Elements outboundFlights = outboundContainer.select(".flight-info");
 
             // Extract inbound flight data
-            Element inboundContainer = doc.selectFirst(".inbound-container");
+            Element inboundContainer = doc.selectFirst(".flights-container .flight-return");
+            if (inboundContainer == null) {
+                System.out.println("No inbound flights found.");
+                return;
+            }
             Elements inboundFlights = inboundContainer.select(".flight-info");
 
             // Extract price and tax data
@@ -69,7 +78,7 @@ public class JsonScraper {
                 String tax = taxElements.get(i).text();
 
                 // Skip flights with 2 connections
-                if (outboundFlight.text().contains("1 connection") && inboundFlight.text().contains("1 connection")) {
+                if (!outboundFlight.text().contains("2 connections") && !inboundFlight.text().contains("2 connections")) {
                     // Check if the flight has the specified connection airport or is a direct flight
                     if (outboundFlight.text().contains(connectionAirport) || outboundFlight.text().contains("Direct")) {
                         double currentPrice = Double.parseDouble(price);
@@ -106,5 +115,3 @@ public class JsonScraper {
         }
     }
 }
-
-
